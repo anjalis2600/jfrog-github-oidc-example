@@ -8,7 +8,7 @@ jobs:
       PLATFORM_REPO: 'npm'
     defaults:
       run:
-        working-directory: ./package
+        working-directory: jfrog-github-oidc-example/package/
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
