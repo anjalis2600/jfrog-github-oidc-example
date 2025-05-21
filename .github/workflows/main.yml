@@ -1,0 +1,25 @@
+jobs:
+  build:
+    # runs-on: ubuntu-latest
+    runs-on: self-hosted
+    env:
+      OIDC_AUDIENCE: 'jfrog-github'
+      OIDC_PROVIDER: 'github-oidc-354009'
+      PLATFORM_REPO: 'npm'
+    defaults:
+      run:
+        working-directory: ./package
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run build
+        run: npm run build
