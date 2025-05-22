@@ -1,25 +1,53 @@
+name: Simple Debug Workflow
+
+on:
+  push:
+    branches:
+      - main  # Change this to your branch name if needed
+
 jobs:
   build:
-    # runs-on: ubuntu-latest
-    runs-on: self-hosted
+    runs-on: self-hosted  # Change this to 'ubuntu-latest' if you do not have a self-hosted runner
     env:
-      OIDC_AUDIENCE: 'jfrog-github'
-      OIDC_PROVIDER: 'github-oidc-354009'
-      PLATFORM_REPO: 'npm'
-    defaults:
-      run:
-        working-directory: jfrog-github-oidc-example/package
+      ACTIONS_RUNNER_DEBUG: true
+      ACTIONS_STEP_DEBUG: true
+      
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
+      - name: Echo Message
+        run: echo "Hello, World! This is a debug logger test."
 
-      - name: Install dependencies
-        run: npm install
+      - name: Show Environment Variables
+        run: |
+          echo "Environment Variables:"
+          env
 
-      - name: Run build
-        run: npm run build
+
+
+# jobs:
+#   build:
+#     # runs-on: ubuntu-latest
+#     runs-on: self-hosted
+#     env:
+#       OIDC_AUDIENCE: 'jfrog-github'
+#       OIDC_PROVIDER: 'github-oidc-354009'
+#       PLATFORM_REPO: 'npm'
+#     defaults:
+#       run:
+#         working-directory: jfrog-github-oidc-example/package
+#     steps:
+#       - name: Checkout source code
+#         uses: actions/checkout@v4
+
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: '18'
+
+#       - name: Install dependencies
+#         run: npm install
+
+#       - name: Run build
+#         run: npm run build
