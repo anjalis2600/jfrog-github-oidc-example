@@ -7,38 +7,64 @@ permissions:
 
 jobs:
   build:
-    runs-on: self-hosted 
-    #ubuntu-latest
+    runs-on: self-hosted   # or ubuntu-latest
     env:
-      # MUST match "Audience" in JFrog OIDC Integration screen
       OIDC_AUDIENCE: 'jfrog-github'
-      # MUST match "Provider Name" in JFrog Integration screen (Screenshot 3 shows 'ganesh')
-      OIDC_PROVIDER: 'anjalis-github-repository' 
+      OIDC_PROVIDER: 'anjalis-github-repository'
       PLATFORM_REPO: 'npm-local1'
-    
+
     defaults:
       run:
         working-directory: ./package
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4 
+        uses: actions/checkout@v4
+
+      - name: Show runner egress IP
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "Runner hostname: $(hostname)"
+          echo "Egress IP (ifconfig.me): $(curl -s https://ifconfig.me)"
+          echo "Egress IP (ipify): $(curl -s https://api.ipify.org)"
+
+      - name: Decode OIDC token
+        working-directory: ${{ github.workspace }}
+        run: |
+          ID_TOKEN=$(curl -sLS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${OIDC_AUDIENCE}" | jq -r .value)
+          echo "===== OIDC JWT claims ====="
+          echo "$ID_TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq .
+          echo "===== iss / aud / repository / actor ====="
+          echo "$ID_TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq '{iss, aud, repository, actor, sub}'
 
       - name: Setup Node
-        uses: actions/setup-node@v4 
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Setup JFrog CLI
-        uses: jfrog/setup-jfrog-cli@v4 
+        uses: jfrog/setup-jfrog-cli@v4
         env:
           JF_URL: ${{ secrets.JF_URL }}
+          JFROG_CLI_LOG_LEVEL: DEBUG
         with:
           oidc-provider-name: ${{ env.OIDC_PROVIDER }}
           oidc-audience: ${{ env.OIDC_AUDIENCE }}
 
+      - name: Debug JFrog CLI config
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "JF_URL=${{ secrets.JF_URL }}"
+          echo "OIDC_PROVIDER=$OIDC_PROVIDER"
+          echo "OIDC_AUDIENCE=$OIDC_AUDIENCE"
+          echo "Token set? $([ -n \"$JF_ACCESS_TOKEN\" ] && echo yes || echo no)"
+          echo "Token length: ${#JF_ACCESS_TOKEN}"
+          jf config show || true
+          jf config use setup-jfrog-cli-server || true
+          jf rt ping --server-id setup-jfrog-cli-server || jf rt ping || true
+
       - name: Set CLI Config
-        # This command creates the temporary .npmrc required for the build
         run: jf npm-config --global=true --repo-resolve=$PLATFORM_REPO --repo-deploy=$PLATFORM_REPO
 
       - name: Install Dependencies
@@ -48,19 +74,13 @@ jobs:
         run: npm test
 
       - name: Publish
-        run: jf npm publish 
+        run: jf npm publish
 
       - name: Publish Build info
         run: |
           jf rt build-collect-env
           jf rt build-add-git
           jf rt build-publish
-
-
-
-
-
-
 
 # name: Simple Debug Workflow
 
